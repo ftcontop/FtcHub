@@ -1,0 +1,733 @@
+-- Services
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = Workspace.CurrentCamera
+
+-- Key system config
+local validKey = "ftcontop"
+local workinkURL = "https://work.ink/21KD/ftchub"
+
+-- FTCHub config
+local cfg = {
+    menuOpen = false, -- start hidden until key entered
+    modalWhenOpen = true,
+
+    -- Pull Vector
+    pullEnabled = false,
+    pullDistance = 50,
+    offsetDistance = 3,
+    pullSpeed = 100,
+
+    -- WalkSpeed
+    walkspeedMultiplier = 1,
+    walkspeedBase = 16,
+
+    -- QB Aimbot
+    qbAimbotEnabled = false,
+    qbPredictionTime = 0.15,
+    qbFOV = 60,
+    qbAimKey = Enum.KeyCode.E,
+
+    -- Fly
+    flyEnabled = false,
+    flySpeed = 50,
+}
+
+-- ========== KEY SYSTEM UI ========== --
+
+-- Key system ScreenGui
+local keyGui = Instance.new("ScreenGui")
+keyGui.Name = "FTCHubKeySystem"
+keyGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+keyGui.ResetOnSpawn = false
+keyGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+
+-- Main Frame for key system
+local keyFrame = Instance.new("Frame")
+keyFrame.Size = UDim2.new(0, 420, 0, 220)
+keyFrame.Position = UDim2.new(0.5, -210, 0.5, -110)
+keyFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+keyFrame.BackgroundColor3 = Color3.fromRGB(35, 0, 70)
+keyFrame.BorderSizePixel = 0
+keyFrame.Parent = keyGui
+
+-- Purple Gradient Background
+local gradient = Instance.new("UIGradient")
+gradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(140, 0, 255)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(70, 0, 180))
+}
+gradient.Rotation = 45
+gradient.Parent = keyFrame
+
+-- Drag functionality
+local dragging
+local dragInput
+local dragStart
+local startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    keyFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                  startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+keyFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = keyFrame.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+keyFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+-- Title Label
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0, 40)
+titleLabel.BackgroundTransparency = 1
+titleLabel.Font = Enum.Font.GothamBlack
+titleLabel.Text = "FtcHub"
+titleLabel.TextColor3 = Color3.fromRGB(210, 180, 255)
+titleLabel.TextScaled = true
+titleLabel.Parent = keyFrame
+
+-- Input Box Background
+local inputBg = Instance.new("Frame")
+inputBg.Size = UDim2.new(0.8, 0, 0, 45)
+inputBg.Position = UDim2.new(0.1, 0, 0, 60)
+inputBg.BackgroundColor3 = Color3.fromRGB(60, 0, 120)
+inputBg.BorderSizePixel = 0
+inputBg.Parent = keyFrame
+inputBg.ClipsDescendants = true
+
+-- TextBox for Key Input
+local keyInput = Instance.new("TextBox")
+keyInput.Size = UDim2.new(1, -20, 1, 0)
+keyInput.Position = UDim2.new(0, 10, 0, 0)
+keyInput.BackgroundTransparency = 1
+keyInput.Font = Enum.Font.GothamSemibold
+keyInput.PlaceholderText = "Enter your key here"
+keyInput.TextColor3 = Color3.fromRGB(230, 230, 230)
+keyInput.TextSize = 22
+keyInput.ClearTextOnFocus = false
+keyInput.Parent = inputBg
+
+-- Submit Button
+local submitBtn = Instance.new("TextButton")
+submitBtn.Size = UDim2.new(0.4, 0, 0, 45)
+submitBtn.Position = UDim2.new(0.1, 0, 0, 120)
+submitBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 255)
+submitBtn.AutoButtonColor = false
+submitBtn.Font = Enum.Font.GothamBold
+submitBtn.Text = "Submit"
+submitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+submitBtn.TextScaled = true
+submitBtn.Parent = keyFrame
+
+submitBtn.MouseEnter:Connect(function()
+    TweenService:Create(submitBtn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(180, 80, 255)}):Play()
+end)
+submitBtn.MouseLeave:Connect(function()
+    TweenService:Create(submitBtn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(120, 40, 255)}):Play()
+end)
+
+-- Get Key Button
+local getKeyBtn = Instance.new("TextButton")
+getKeyBtn.Size = UDim2.new(0.4, 0, 0, 45)
+getKeyBtn.Position = UDim2.new(0.5, 10, 0, 120)
+getKeyBtn.BackgroundColor3 = Color3.fromRGB(120, 40, 255)
+getKeyBtn.AutoButtonColor = false
+getKeyBtn.Font = Enum.Font.GothamBold
+getKeyBtn.Text = "Get Key"
+getKeyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+getKeyBtn.TextScaled = true
+getKeyBtn.Parent = keyFrame
+
+getKeyBtn.MouseEnter:Connect(function()
+    TweenService:Create(getKeyBtn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(180, 80, 255)}):Play()
+end)
+getKeyBtn.MouseLeave:Connect(function()
+    TweenService:Create(getKeyBtn, TweenInfo.new(0.25), {BackgroundColor3 = Color3.fromRGB(120, 40, 255)}):Play()
+end)
+
+-- Feedback Label
+local feedbackLabel = Instance.new("TextLabel")
+feedbackLabel.Size = UDim2.new(1, 0, 0, 30)
+feedbackLabel.Position = UDim2.new(0, 0, 0, 175)
+feedbackLabel.BackgroundTransparency = 1
+feedbackLabel.Font = Enum.Font.GothamSemibold
+feedbackLabel.Text = ""
+feedbackLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+feedbackLabel.TextScaled = true
+feedbackLabel.Parent = keyFrame
+
+-- Get Key Button Functionality
+getKeyBtn.MouseButton1Click:Connect(function()
+    local success, err = pcall(function()
+        setclipboard(workinkURL)
+    end)
+    if success then
+        feedbackLabel.TextColor3 = Color3.fromRGB(180, 180, 255)
+        feedbackLabel.Text = "Link copied to clipboard!"
+    else
+        feedbackLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+        feedbackLabel.Text = "Failed to copy. Link: "..workinkURL
+    end
+end)
+
+-- ========== FTCHub UI ========== --
+
+local ftcGui = Instance.new("ScreenGui")
+ftcGui.Name = "FTCHubMainUI"
+ftcGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+ftcGui.ResetOnSpawn = false
+ftcGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+ftcGui.Enabled = false -- start disabled until key validated
+
+local main = Instance.new("Frame", ftcGui)
+main.Size = UDim2.new(0, 450, 0, 360)
+main.Position = UDim2.new(0.5, -225, 0.5, -180)
+main.BackgroundColor3 = Color3.fromRGB(10, 10, 10) -- black background
+main.BorderSizePixel = 0
+main.Active = true
+
+-- Custom draggable for main FTCHub UI
+local draggingMain
+local dragInputMain
+local dragStartMain
+local startPosMain
+
+local function updateMain(input)
+    local delta = input.Position - dragStartMain
+    main.Position = UDim2.new(startPosMain.X.Scale, startPosMain.X.Offset + delta.X,
+                              startPosMain.Y.Scale, startPosMain.Y.Offset + delta.Y)
+end
+
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingMain = true
+        dragStartMain = input.Position
+        startPosMain = main.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                draggingMain = false
+            end
+        end)
+    end
+end)
+
+main.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInputMain = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInputMain and draggingMain then
+        updateMain(input)
+    end
+end)
+
+Instance.new("UICorner", main).CornerRadius = UDim.new(0, 16)
+
+local sidebar = Instance.new("Frame", main)
+sidebar.Size = UDim2.new(0, 130, 1, 0)
+sidebar.BackgroundColor3 = Color3.fromRGB(8, 8, 12) -- dark blackish sidebar
+sidebar.BorderSizePixel = 0
+Instance.new("UICorner", sidebar).CornerRadius = UDim.new(0, 16)
+
+-- Fancy gradient purple title
+local title = Instance.new("TextLabel", sidebar)
+title.Size = UDim2.new(1, 0, 0, 60)
+title.BackgroundTransparency = 1
+title.Text = "FTCHub"
+title.Font = Enum.Font.GothamBlack
+title.TextSize = 28
+title.TextColor3 = Color3.fromRGB(180, 120, 230)
+title.TextStrokeColor3 = Color3.fromRGB(110, 50, 190)
+title.TextStrokeTransparency = 0.6
+title.TextXAlignment = Enum.TextXAlignment.Center
+title.TextYAlignment = Enum.TextYAlignment.Center
+
+-- Tabs (including new "Fly")
+local tabs = {"Player", "Mags", "PullVector", "QB Aimbot", "Fly"}
+local tabButtons = {}
+
+local content = Instance.new("Frame", main)
+content.Size = UDim2.new(1, -130, 1, 0)
+content.Position = UDim2.new(0, 130, 0, 0)
+content.BackgroundTransparency = 1
+
+local function clearContent()
+    for _, c in ipairs(content:GetChildren()) do
+        c:Destroy()
+    end
+end
+
+local function makeLabel(text, y)
+    local label = Instance.new("TextLabel", content)
+    label.Position = UDim2.new(0, 20, 0, y)
+    label.Size = UDim2.new(1, -40, 0, 24)
+    label.BackgroundTransparency = 1
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(200, 200, 210)
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 18
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    return label
+end
+
+local function makeToggle(y, labelText, initial, onChange)
+    local lbl = makeLabel(labelText, y)
+    local toggle = Instance.new("TextButton", content)
+    toggle.Position = UDim2.new(1, -100, 0, y)
+    toggle.Size = UDim2.new(0, 80, 0, 30)
+    toggle.BackgroundColor3 = initial and Color3.fromRGB(120, 180, 255) or Color3.fromRGB(100, 40, 40)
+    toggle.Text = initial and "ON" or "OFF"
+    toggle.Font = Enum.Font.Gotham
+    toggle.TextSize = 18
+    toggle.TextColor3 = Color3.fromRGB(20, 20, 20)
+    Instance.new("UICorner", toggle).CornerRadius = UDim.new(0, 8)
+
+    toggle.MouseButton1Click:Connect(function()
+        initial = not initial
+        toggle.BackgroundColor3 = initial and Color3.fromRGB(120, 180, 255) or Color3.fromRGB(100, 40, 40)
+        toggle.Text = initial and "ON" or "OFF"
+        if onChange then onChange(initial) end
+    end)
+    return toggle
+end
+
+local function makeSlider(y, labelText, minV, maxV, initV, onChange)
+    local lbl = makeLabel(labelText .. ": " .. tostring(initV), y)
+    local sliderBg = Instance.new("Frame", content)
+    sliderBg.Position = UDim2.new(0, 20, 0, y + 30)
+    sliderBg.Size = UDim2.new(1, -40, 0, 24)
+    sliderBg.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+    Instance.new("UICorner", sliderBg).CornerRadius = UDim.new(0, 10)
+
+    local fill = Instance.new("Frame", sliderBg)
+    fill.Position = UDim2.new(0, 0, 0, 0)
+    fill.Size = UDim2.new((initV - minV) / (maxV - minV), 0, 1, 0)
+    fill.BackgroundColor3 = Color3.fromRGB(180, 120, 230)
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 10)
+
+    local dragging = false
+
+    local sliderBtn = Instance.new("TextButton", sliderBg)
+    sliderBtn.Size = UDim2.new(0, 12, 1, 0)
+    sliderBtn.Position = UDim2.new((initV - minV) / (maxV - minV) - 0.03, 0, 0, 0)
+    sliderBtn.BackgroundColor3 = Color3.fromRGB(210, 210, 255)
+    sliderBtn.BorderSizePixel = 0
+    sliderBtn.Text = ""
+    sliderBtn.AutoButtonColor = false
+    Instance.new("UICorner", sliderBtn).CornerRadius = UDim.new(0, 6)
+
+    sliderBtn.MouseButton1Down:Connect(function()
+        dragging = true
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local absPos = sliderBg.AbsolutePosition
+            local absSize = sliderBg.AbsoluteSize
+            local mouseX = UserInputService:GetMouseLocation().X
+            local relativeX = math.clamp(mouseX - absPos.X, 0, absSize.X)
+            local percent = relativeX / absSize.X
+            sliderBtn.Position = UDim2.new(percent - 0.03, 0, 0, 0)
+            fill.Size = UDim2.new(percent, 0, 1, 0)
+            local value = minV + percent * (maxV - minV)
+            value = math.floor(value * 100) / 100
+            lbl.Text = labelText .. ": " .. tostring(value)
+            if onChange then onChange(value) end
+        end
+    end)
+
+    return sliderBg, fill, sliderBtn
+end
+
+-- Create tab buttons on sidebar
+for i, tabName in ipairs(tabs) do
+    local btn = Instance.new("TextButton", sidebar)
+    btn.Size = UDim2.new(1, -20, 0, 40)
+    btn.Position = UDim2.new(0, 10, 0, 60 + (i - 1) * 50)
+    btn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    btn.Text = tabName
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 18
+    btn.TextColor3 = Color3.fromRGB(170, 170, 180)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    tabButtons[tabName] = btn
+end
+
+local currentTab = "Player"
+local function switchTab(name)
+    currentTab = name
+    for tab, btn in pairs(tabButtons) do
+        if tab == name then
+            btn.BackgroundColor3 = Color3.fromRGB(180, 120, 230)
+            btn.TextColor3 = Color3.fromRGB(40, 10, 50)
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+            btn.TextColor3 = Color3.fromRGB(170, 170, 180)
+        end
+    end
+
+    clearContent()
+
+    if name == "Player" then
+        local walkspeedVal = makeLabel("WalkSpeed Multiplier: " .. string.format("%.2f", cfg.walkspeedMultiplier), 40)
+        makeSlider(70, "WalkSpeed Multiplier", 0.5, 5, cfg.walkspeedMultiplier, function(v)
+            cfg.walkspeedMultiplier = v
+            walkspeedVal.Text = "WalkSpeed Multiplier: " .. string.format("%.2f", v)
+            local character = LocalPlayer.Character
+            if character then
+                local humanoid = character:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid.WalkSpeed = (cfg.walkspeedBase or 16) * v
+                end
+            end
+        end)
+    elseif name == "Mags" then
+        makeLabel("Mags options coming soon!", 50)
+    elseif name == "PullVector" then
+        local toggle = makeToggle(40, "Enable Pull", cfg.pullEnabled, function(val)
+            cfg.pullEnabled = val
+        end)
+
+        makeSlider(110, "Pull Distance", 10, 100, cfg.pullDistance, function(v)
+            cfg.pullDistance = v
+        end)
+
+        makeSlider(190, "Offset Distance", 0, 10, cfg.offsetDistance, function(v)
+            cfg.offsetDistance = v
+        end)
+
+        makeSlider(270, "Pull Speed", 20, 250, cfg.pullSpeed, function(v)
+            cfg.pullSpeed = v
+        end)
+    elseif name == "QB Aimbot" then
+        local toggle = makeToggle(40, "Enable QB Aimbot", cfg.qbAimbotEnabled, function(val)
+            cfg.qbAimbotEnabled = val
+        end)
+
+        makeSlider(110, "Prediction Time", 0.05, 0.5, cfg.qbPredictionTime, function(v)
+            cfg.qbPredictionTime = v
+        end)
+
+        makeSlider(190, "FOV (degrees)", 10, 180, cfg.qbFOV, function(v)
+            cfg.qbFOV = v
+        end)
+
+        local keyLabel = makeLabel("Aim Key: " .. tostring(cfg.qbAimKey.Name), 270)
+
+        local function changeKey()
+            keyLabel.Text = "Press any key..."
+            local conn
+            conn = UserInputService.InputBegan:Connect(function(input, gp)
+                if not gp and input.UserInputType == Enum.UserInputType.Keyboard then
+                    cfg.qbAimKey = input.KeyCode
+                    keyLabel.Text = "Aim Key: " .. tostring(cfg.qbAimKey.Name)
+                    conn:Disconnect()
+                end
+            end)
+        end
+
+        local changeKeyBtn = Instance.new("TextButton", content)
+        changeKeyBtn.Position = UDim2.new(0.5, -70, 0, 300)
+        changeKeyBtn.Size = UDim2.new(0, 140, 0, 40)
+        changeKeyBtn.BackgroundColor3 = Color3.fromRGB(180, 120, 230)
+        changeKeyBtn.Text = "Change Aim Key"
+        changeKeyBtn.Font = Enum.Font.Gotham
+        changeKeyBtn.TextSize = 18
+        changeKeyBtn.TextColor3 = Color3.fromRGB(40, 10, 50)
+        Instance.new("UICorner", changeKeyBtn).CornerRadius = UDim.new(0, 12)
+
+        changeKeyBtn.MouseButton1Click:Connect(changeKey)
+    elseif name == "Fly" then
+        local toggle = makeToggle(40, "Enable Fly", cfg.flyEnabled, function(val)
+            cfg.flyEnabled = val
+            if not val then
+                -- Reset velocity on fly disable
+                local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.Velocity = Vector3.new(0, 0, 0)
+                end
+            end
+        end)
+
+        makeSlider(110, "Fly Speed", 10, 150, cfg.flySpeed, function(v)
+            cfg.flySpeed = v
+        end)
+    end
+end
+
+for name, btn in pairs(tabButtons) do
+    btn.MouseButton1Click:Connect(function()
+        switchTab(name)
+    end)
+end
+
+switchTab(currentTab)
+
+ftcGui.Enabled = cfg.menuOpen
+
+-- Pull logic with M1 hold
+local pulling = false
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        if cfg.menuOpen then
+            cfg.menuOpen = false
+            ftcGui.Enabled = false
+            UserInputService.ModalEnabled = false
+        else
+            cfg.menuOpen = true
+            ftcGui.Enabled = true
+            UserInputService.ModalEnabled = cfg.modalWhenOpen
+        end
+    elseif input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if cfg.pullEnabled then
+            pulling = true
+        end
+    end
+end)
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        pulling = false
+    end
+end)
+
+-- Humanoid helpers
+local function getHumanoidRootPart()
+    local character = LocalPlayer.Character
+    if character then
+        return character:FindFirstChild("HumanoidRootPart")
+    end
+end
+local function getHumanoid()
+    local character = LocalPlayer.Character
+    if character then
+        return character:FindFirstChildOfClass("Humanoid")
+    end
+end
+
+-- Find football or ball
+local function findBall()
+    local balls = {}
+    for _, obj in ipairs(Workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local name = obj.Name:lower()
+            if name:find("ball") or name:find("football") then
+                table.insert(balls, obj)
+            end
+        elseif obj:IsA("Model") then
+            local nm = obj.Name:lower()
+            if nm:find("ball") or nm:find("football") then
+                local bp = obj:FindFirstChildWhichIsA("BasePart")
+                if bp then
+                    table.insert(balls, bp)
+                end
+            end
+        end
+    end
+    local closest, closestDist
+    local hrp = getHumanoidRootPart()
+    if not hrp then return nil end
+    local myPos = hrp.Position
+    for _, b in ipairs(balls) do
+        local dist = (b.Position - myPos).Magnitude
+        if not closestDist or dist < closestDist then
+            closest = b
+            closestDist = dist
+        end
+    end
+    return closest, closestDist
+end
+
+-- Find closest enemy player for aimbot
+local function getClosestTarget()
+    local hrp = getHumanoidRootPart()
+    if not hrp then return nil end
+    local closest
+    local closestDist
+    local myPos = hrp.Position
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local enemyHRP = plr.Character:FindFirstChild("HumanoidRootPart")
+            local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+            if enemyHRP and humanoid and humanoid.Health > 0 then
+                local dist = (enemyHRP.Position - myPos).Magnitude
+                if dist <= 100 then -- Only consider targets within 100 studs
+                    if not closestDist or dist < closestDist then
+                        closest = plr
+                        closestDist = dist
+                    end
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- Smooth lerp function for aiming (can tweak or replace for "snap" aiming)
+local function lerp(a, b, t)
+    return a + (b - a) * t
+end
+
+-- QB Aimbot logic
+local aiming = false
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == cfg.qbAimKey then
+        aiming = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == cfg.qbAimKey then
+        aiming = false
+    end
+end)
+
+-- Fly movement controls
+local flyVelocity = Vector3.new(0, 0, 0)
+RunService.Heartbeat:Connect(function(dt)
+    local humanoid = getHumanoid()
+    if humanoid then
+        humanoid.WalkSpeed = (cfg.walkspeedBase or 16) * cfg.walkspeedMultiplier
+    end
+
+    -- Pull vector while holding M1
+    if cfg.pullEnabled and pulling then
+        local hrp = getHumanoidRootPart()
+        local ball, dist = findBall()
+        if hrp and ball and dist and dist <= cfg.pullDistance then
+            local dir = (ball.Position - hrp.Position)
+            local mag = dir.Magnitude
+            if mag > cfg.offsetDistance then
+                local moveVec = dir.Unit * math.min(cfg.pullSpeed * dt, mag - cfg.offsetDistance)
+                hrp.CFrame = hrp.CFrame + moveVec
+            end
+        end
+    end
+
+    -- QB Aimbot aiming
+    if cfg.qbAimbotEnabled and aiming then
+        local target = getClosestTarget()
+        if target and target.Character then
+            local enemyHRP = target.Character:FindFirstChild("HumanoidRootPart")
+            if enemyHRP then
+                local myHRP = getHumanoidRootPart()
+                if myHRP then
+                    local targetPos = enemyHRP.Position
+                    local targetVel = enemyHRP.Velocity
+                    local predictedPos = targetPos + targetVel * cfg.qbPredictionTime
+
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(predictedPos)
+                    local mousePos = UserInputService:GetMouseLocation()
+
+                    local dx = screenPos.X - mousePos.X
+                    local dy = screenPos.Y - mousePos.Y
+                    local dist = math.sqrt(dx*dx + dy*dy)
+
+                    local fovPixels = (cfg.qbFOV / 180) * math.min(Camera.ViewportSize.X, Camera.ViewportSize.Y) / 2
+
+                    if onScreen and dist <= fovPixels then
+                        local direction = (predictedPos - Camera.CFrame.Position).Unit
+                        local newCFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + direction)
+                        Camera.CFrame = newCFrame
+                    end
+                end
+            end
+        end
+    end
+
+    -- Fly logic
+    if cfg.flyEnabled then
+        local hrp = getHumanoidRootPart()
+        if hrp then
+            local moveVec = Vector3.new(0, 0, 0)
+            local cam = Workspace.CurrentCamera
+            local camCFrame = cam.CFrame
+
+            -- Movement input
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveVec = moveVec + camCFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveVec = moveVec - camCFrame.LookVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveVec = moveVec - camCFrame.RightVector
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveVec = moveVec + camCFrame.RightVector
+            end
+
+            -- Vertical movement
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                moveVec = moveVec + Vector3.new(0,1,0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or UserInputService:IsKeyDown(Enum.KeyCode.C) then
+                moveVec = moveVec - Vector3.new(0,1,0)
+            end
+
+            if moveVec.Magnitude > 0 then
+                moveVec = moveVec.Unit * cfg.flySpeed * dt
+                hrp.CFrame = hrp.CFrame + moveVec
+            end
+            hrp.Velocity = Vector3.new(0,0,0) -- cancel velocity for smooth flying
+        end
+    end
+end)
+
+-- Validate key submission
+submitBtn.MouseButton1Click:Connect(function()
+    local enteredKey = keyInput.Text:lower():gsub("%s+", "")
+    if enteredKey == validKey then
+        feedbackLabel.TextColor3 = Color3.fromRGB(180, 255, 180)
+        feedbackLabel.Text = "Key Accepted! Loading FTCHub..."
+        wait(0.6)
+        keyGui.Enabled = false
+        ftcGui.Enabled = true
+        cfg.menuOpen = true
+        UserInputService.ModalEnabled = cfg.modalWhenOpen
+    else
+        feedbackLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        feedbackLabel.Text = "Invalid key. Please try again."
+    end
+end)
+
+print("FTCHub with integrated Key System loaded. Enter your key to begin.")
